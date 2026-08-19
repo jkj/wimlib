@@ -6,6 +6,36 @@
 
 #ifdef _WIN32
 #include <wchar.h>
+
+#if !defined(__MINGW32__)
+/*
+ * Spellings that differ between MinGW and the MSVC runtime.  wimlib's Windows
+ * code is written against MinGW, which provides the first name of each pair;
+ * the MSVC runtime has the same function under the second, or not at all.
+ */
+#  include <sys/stat.h>
+#  define snwprintf	_snwprintf
+#  define vsnwprintf	_vsnwprintf
+
+/* wmempcpy() is a GNU extension and has no MSVC runtime equivalent.  */
+static inline wchar_t *
+wmempcpy(wchar_t *dest, const wchar_t *src, size_t n)
+{
+	return wmemcpy(dest, src, n) + n;
+}
+
+/*
+ * wstat() is spelled _wstat and takes a struct _stat, which is layout-identical
+ * to struct stat: the MSVC runtime's own <sys/stat.h> defines the narrow stat()
+ * as exactly this cast, guarded by a _STATIC_ASSERT that the two are the same
+ * size.
+ */
+static inline int
+wstat(const wchar_t *path, struct stat *st)
+{
+	return _wstat(path, (struct _stat *)st);
+}
+#endif
 /*
  * For Windows builds, the "tchar" type will be 2 bytes and will be equivalent
  * to "wchar_t" and "utf16lechar".  All indicate one coding unit of a string

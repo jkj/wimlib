@@ -31,7 +31,9 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h> /* for unlink()  */
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h> /* for unlink()  */
+#endif
 
 #include "wimlib/assert.h"
 #include "wimlib/bitops.h"

@@ -588,7 +588,7 @@ lzms_init_huffman_codes(struct lzms_decompressor *d, unsigned num_offset_slots)
 			       LZMS_DELTA_POWER_TABLEBITS);
 }
 
-static noinline void
+static wimlib_noinline void
 lzms_rebuild_huffman_code(struct lzms_huffman_rebuild_info *rebuild_info)
 {
 	lzms_build_huffman_code(rebuild_info);

@@ -7,8 +7,10 @@
 #ifndef _WIMLIB_TIMESTAMP_H
 #define _WIMLIB_TIMESTAMP_H
 
-#include <sys/time.h>
 #include <time.h>
+#ifndef _WIN32
+#  include <sys/time.h>
+#endif
 
 #include "wimlib/types.h"
 
@@ -21,21 +23,30 @@ void
 wim_timestamp_to_wimlib_timespec(u64 timestamp, struct wimlib_timespec *wts,
 				 s32 *high_part_ret);
 
+/* Defined only on non-Windows builds; see timestamp.c, which guards the
+ * definitions of these four the same way.  struct timeval in particular is not
+ * a standard C type and the Windows SDK does not declare it in <sys/time.h>;
+ * it has no such header at all.  */
+#ifndef _WIN32
 struct timeval
 wim_timestamp_to_timeval(u64 timestamp);
 
 struct timespec
 wim_timestamp_to_timespec(u64 timestamp);
+#endif
 
 u64
 time_t_to_wim_timestamp(time_t t);
 
+#ifndef _WIN32
 u64
 timeval_to_wim_timestamp(const struct timeval *tv);
 
 u64
 timespec_to_wim_timestamp(const struct timespec *ts);
+#endif
 
+/* Windows has its own definition of this one, in win32_replacements.c.  */
 u64
 now_as_wim_timestamp(void);
 

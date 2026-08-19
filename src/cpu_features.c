@@ -132,7 +132,9 @@ get_cpu_features(void)
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
-#include <unistd.h>
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
 
 #define AT_HWCAP	16
 #define AT_HWCAP2	26

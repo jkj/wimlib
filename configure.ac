@@ -81,9 +81,11 @@ AC_CHECK_HEADERS([alloca.h		\
 		  sys/file.h		\
 		  sys/syscall.h		\
 		  sys/sysctl.h		\
+		  sys/time.h		\
 		  sys/times.h		\
 		  sys/xattr.h		\
 		  time.h		\
+		  unistd.h		\
 		  utime.h])
 
 # Does stat() support nanosecond-precision timestamps?  (This is relevant on

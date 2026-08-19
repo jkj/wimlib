@@ -53,13 +53,21 @@
  * desirable in highly tuned code, e.g. compression codecs.  */
 #define forceinline		inline __attribute__((always_inline))
 
-/* Declare that the annotated function should *not* be inlined.  */
-#define noinline		__attribute__((noinline))
+/* Declare that the annotated function should *not* be inlined.
+ *
+ * NOT named just 'noinline'.  That is not a reserved identifier, and defining it
+ * as an object-like macro breaks any header that spells the attribute
+ * __declspec(noinline) -- which the Windows SDK does, in corecrt_stdio_config.h,
+ * winnt.h, ntdef.h and RpcProxy.h.  Those expand to
+ * __declspec(__attribute__((noinline))) and fail to parse.  MinGW does not use
+ * that spelling, which is why the collision only shows up when building against
+ * the Windows SDK.  */
+#define wimlib_noinline		__attribute__((noinline))
 
-/* Functionally the same as 'noinline', but documents that the reason for not
- * inlining is to prevent the annotated function from being inlined into a
+/* Functionally the same as 'wimlib_noinline', but documents that the reason for
+ * not inlining is to prevent the annotated function from being inlined into a
  * recursive function, thereby increasing its stack usage.  */
-#define noinline_for_stack	noinline
+#define noinline_for_stack	wimlib_noinline
 
 /* Hint that the expression is usually true.  */
 #define likely(expr)		__builtin_expect(!!(expr), 1)

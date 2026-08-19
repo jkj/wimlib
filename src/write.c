@@ -35,7 +35,9 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdlib.h>
-#include <unistd.h>
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
 
 #include "wimlib/alloca.h"
 #include "wimlib/assert.h"

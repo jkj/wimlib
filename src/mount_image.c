@@ -50,7 +50,9 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-#include <unistd.h>
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
 #include <utime.h>
 
 #include "wimlib/blob_table.h"

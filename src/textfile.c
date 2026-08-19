@@ -28,7 +28,9 @@
 #include <fcntl.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <unistd.h>
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+#endif
 
 #include "wimlib/encoding.h"
 #include "wimlib/error.h"
