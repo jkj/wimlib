@@ -72,6 +72,7 @@ libwim_la_SOURCES =		\
 	src/paths.c		\
 	src/pattern.c		\
 	src/progress.c		\
+	src/read_path.c		\
 	src/reference.c		\
 	src/registry.c		\
 	src/reparse.c		\

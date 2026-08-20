@@ -3470,6 +3470,98 @@ wimlib_iterate_dir_tree(WIMStruct *wim, int image, const wimlib_tchar *path,
 /**
  * @ingroup G_wim_information
  *
+ * Type of a callback function to wimlib_read_path_data().  Receives one chunk of
+ * uncompressed data at a time, in order.  @p size is never zero.  Must return 0 to continue;
+ * any nonzero value stops the read and is returned to the caller unchanged, so a caller that
+ * wants to stop early can use a value of its own or
+ * ::WIMLIB_ERR_ABORTED_BY_PROGRESS.
+ */
+typedef int (*wimlib_read_data_callback_t)(const void *chunk, size_t size,
+					   void *user_ctx);
+
+/**
+ * @ingroup G_wim_information
+ *
+ * Read the contents of a file in a WIM image, without extracting it anywhere.
+ *
+ * The data arrives through @p cb in order, one decompressed chunk at a time, so a file of any
+ * size can be read in bounded memory. Nothing is written to the filesystem and no temporary
+ * space is needed.
+ *
+ * @param wim
+ *	The ::WIMStruct for the WIM file.
+ * @param image
+ *	The 1-based index of the image containing the file.  ::WIMLIB_ALL_IMAGES is not valid.
+ * @param path
+ *	Path to the file within the image.
+ * @param cb
+ *	Called for each chunk of data.  See ::wimlib_read_data_callback_t.
+ * @param user_ctx
+ *	Passed to @p cb.
+ * @param size_ret
+ *	If non-NULL, receives the file's full uncompressed size before any chunk is delivered.
+ *
+ * @return 0 on success; a ::wimlib_error_code value on failure.  A zero-length file succeeds
+ * with @p size_ret set to 0 and @p cb never called.
+ *
+ * @retval ::WIMLIB_ERR_INVALID_PARAM
+ *	@p wim, @p path or @p cb was NULL.
+ * @retval ::WIMLIB_ERR_INVALID_IMAGE
+ *	@p image did not name a single image.
+ * @retval ::WIMLIB_ERR_PATH_DOES_NOT_EXIST
+ *	@p path did not name anything in the image.
+ * @retval ::WIMLIB_ERR_IS_DIRECTORY
+ *	@p path named a directory, which has no contents to read.
+ * @retval ::WIMLIB_ERR_NOT_A_REGULAR_FILE
+ *	@p path named a reparse point (a symbolic link or junction).
+ */
+WIMLIBAPI int
+wimlib_read_path_data(WIMStruct *wim, int image, const wimlib_tchar *path,
+		      wimlib_read_data_callback_t cb, void *user_ctx,
+		      uint64_t *size_ret);
+
+/**
+ * @ingroup G_wim_information
+ *
+ * Read a byte range from a file in a WIM image, without extracting it anywhere.
+ *
+ * A WIM resource is a table of independently compressed chunks, so only the chunks covering
+ * the requested range are read and decompressed — the file is not materialised, and neither is
+ * the part of it before @p offset.  This makes arbitrary seeking within a compressed member
+ * practical, which is what a viewer paging through a large file needs.
+ *
+ * Solid resources (as found in .esd files) are also chunked and work the same way, but their
+ * chunks are far larger, so a seek into one costs proportionally more.
+ *
+ * @param wim
+ *	The ::WIMStruct for the WIM file.
+ * @param image
+ *	The 1-based index of the image containing the file.  ::WIMLIB_ALL_IMAGES is not valid.
+ * @param path
+ *	Path to the file within the image.
+ * @param offset
+ *	Byte offset within the file's contents to read from.
+ * @param size
+ *	Number of bytes to read.
+ * @param buf
+ *	Buffer of at least @p size bytes.
+ * @param nread_ret
+ *	If non-NULL, receives the number of bytes actually placed in @p buf.  This is less than
+ *	@p size when the range runs past the end of the file, and 0 when @p offset is at or past
+ *	the end — neither is an error, matching the behaviour of a short read.
+ *
+ * @return 0 on success; a ::wimlib_error_code value on failure.  The failures are those of
+ * wimlib_read_path_data(), plus ::WIMLIB_ERR_INVALID_PARAM if the file's data is not stored in
+ * the WIM itself (which happens only on a ::WIMStruct with pending modifications).
+ */
+WIMLIBAPI int
+wimlib_read_path_data_range(WIMStruct *wim, int image, const wimlib_tchar *path,
+			    uint64_t offset, size_t size, void *buf,
+			    size_t *nread_ret);
+
+/**
+ * @ingroup G_wim_information
+ *
  * Iterate through the blob lookup table of a ::WIMStruct.  This can be used to
  * directly get a listing of the unique "blobs" contained in a WIM file, which
  * are deduplicated over all images.
