@@ -49,9 +49,37 @@
  *	WIMLIB_ERR_READ				(errno set)
  *	WIMLIB_ERR_UNEXPECTED_END_OF_FILE	(errno set to EINVAL)
  */
+/* A read through a filedes's reader, at an absolute offset, retried until
+ * 'count' bytes have arrived.  */
+static int
+reader_read(struct filedes *fd, void *buf, size_t count, off_t offset)
+{
+	while (count) {
+		int64_t ret = fd->reader->pread(fd->reader_ctx, buf, count, offset);
+		if (unlikely(ret <= 0)) {
+			if (ret == 0) {
+				errno = EINVAL;
+				return WIMLIB_ERR_UNEXPECTED_END_OF_FILE;
+			}
+			errno = EIO;
+			return WIMLIB_ERR_READ;
+		}
+		buf += ret;
+		count -= ret;
+		offset += ret;
+	}
+	return 0;
+}
+
 int
 full_read(struct filedes *fd, void *buf, size_t count)
 {
+	if (fd->reader) {
+		int ret = reader_read(fd, buf, count, fd->offset);
+		if (ret == 0)
+			fd->offset += count;
+		return ret;
+	}
 	while (count) {
 		ssize_t ret = read(fd->fd, buf, count);
 		if (unlikely(ret <= 0)) {
@@ -115,6 +143,8 @@ pipe_read(struct filedes *fd, void *buf, size_t count, off_t offset)
 int
 full_pread(struct filedes *fd, void *buf, size_t count, off_t offset)
 {
+	if (fd->reader)
+		return reader_read(fd, buf, count, offset);
 	if (fd->is_pipe)
 		goto is_pipe;
 
@@ -196,6 +226,10 @@ full_pwrite(struct filedes *fd, const void *buf, size_t count, off_t offset)
 
 off_t filedes_seek(struct filedes *fd, off_t offset)
 {
+	if (fd->reader) {
+		fd->offset = offset;
+		return offset;
+	}
 	if (fd->is_pipe) {
 		errno = ESPIPE;
 		return -1;
@@ -210,5 +244,7 @@ off_t filedes_seek(struct filedes *fd, off_t offset)
 
 bool filedes_is_seekable(struct filedes *fd)
 {
+	if (fd->reader)
+		return true;
 	return !fd->is_pipe && lseek(fd->fd, 0, SEEK_CUR) != -1;
 }

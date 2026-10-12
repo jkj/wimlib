@@ -3851,6 +3851,44 @@ wimlib_open_wim_with_progress(const wimlib_tchar *wim_file,
 			      void *progctx);
 
 /**
+ * @ingroup G_creating_and_opening_wims
+ *
+ * Where the bytes of a WIM opened with wimlib_open_wim_from_reader() come from.
+ */
+struct wimlib_file_reader {
+	/**
+	 * Read up to @p count bytes from absolute @p offset into @p buf.  Return
+	 * how many were read — 0 only at the end of the data — or -1 on an
+	 * error.  wimlib reads at whatever offsets it needs, in any order, so
+	 * this must not depend on a position of its own.
+	 */
+	int64_t (*pread)(void *ctx, void *buf, size_t count, uint64_t offset);
+
+	/** The size of the data, in bytes. */
+	uint64_t (*size)(void *ctx);
+};
+
+/**
+ * @ingroup G_creating_and_opening_wims
+ *
+ * Same as wimlib_open_wim(), except that the WIM's bytes are read through
+ * @p reader instead of from a file — a WIM that is itself a member of some
+ * other container, read in place without being copied out of it first.
+ *
+ * @p reader and @p ctx must stay valid until the ::WIMStruct is freed with
+ * wimlib_free(); wimlib never frees either.  ::WIMLIB_OPEN_FLAG_WRITE_ACCESS
+ * is refused, since there is no file to write back to.
+ *
+ * @return 0 on success; a ::wimlib_error_code value on failure, as for
+ * wimlib_open_wim().
+ */
+WIMLIBAPI int
+wimlib_open_wim_from_reader(const struct wimlib_file_reader *reader,
+			    void *ctx,
+			    int open_flags,
+			    WIMStruct **wim_ret);
+
+/**
  * @ingroup G_writing_and_overwriting_wims
  *
  * Commit a ::WIMStruct to disk, updating its backing file.

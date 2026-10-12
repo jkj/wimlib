@@ -5,13 +5,19 @@
 #include <stddef.h>
 #include <sys/types.h>
 
+struct wimlib_file_reader;
+
 /* Wrapper around a file descriptor that keeps track of offset (including in
  * pipes, which don't support lseek()) and a cached flag that tells whether the
- * file descriptor is a pipe or not.  */
+ * file descriptor is a pipe or not.  When 'reader' is set there is no file
+ * descriptor at all: every read goes through the reader instead (see
+ * wimlib_open_wim_from_reader()).  */
 struct filedes {
 	int fd;
 	unsigned int is_pipe : 1;
 	off_t offset;
+	const struct wimlib_file_reader *reader;
+	void *reader_ctx;
 };
 
 int
@@ -41,19 +47,24 @@ static inline void filedes_init(struct filedes *fd, int raw_fd)
 	fd->fd = raw_fd;
 	fd->offset = 0;
 	fd->is_pipe = 0;
+	fd->reader = NULL;
+	fd->reader_ctx = NULL;
 }
 
 static inline void filedes_invalidate(struct filedes *fd)
 {
 	fd->fd = -1;
+	fd->reader = NULL;
 }
 
-#define filedes_close(f) close((f)->fd)
+/* A reader is the caller's to free (see wimlib_open_wim_from_reader()), so
+ * closing one only lets go of it.  */
+#define filedes_close(f) ((f)->reader ? ((f)->reader = NULL, 0) : close((f)->fd))
 
 static inline bool
 filedes_valid(const struct filedes *fd)
 {
-	return fd->fd != -1;
+	return fd->fd != -1 || fd->reader != NULL;
 }
 
 #endif /* _WIMLIB_FILE_IO_H */

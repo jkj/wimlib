@@ -222,6 +222,14 @@ delete_wim_image(WIMStruct *wim, int image);
 /* Internal open flags (pass to open_wim_as_WIMStruct(), not wimlib_open_wim())
  */
 #define WIMLIB_OPEN_FLAG_FROM_PIPE	0x80000000
+#define WIMLIB_OPEN_FLAG_FROM_READER	0x40000000
+
+/* What open_wim_as_WIMStruct() is handed in place of a file name when
+ * WIMLIB_OPEN_FLAG_FROM_READER is set.  */
+struct wim_reader_source {
+	const struct wimlib_file_reader *reader;
+	void *ctx;
+};
 
 int
 open_wim_as_WIMStruct(const void *wim_filename_or_fd, int open_flags,

@@ -646,6 +646,15 @@ begin_read(WIMStruct *wim, const void *wim_filename_or_fd, int open_flags)
 		wimfile = NULL;
 		filedes_init(&wim->in_fd, *(const int*)wim_filename_or_fd);
 		wim->in_fd.is_pipe = 1;
+	} else if (open_flags & WIMLIB_OPEN_FLAG_FROM_READER) {
+		const struct wim_reader_source *src = wim_filename_or_fd;
+
+		/* No file and no name: messages name it as the reader.  */
+		wimfile = T("[reader]");
+		filedes_init(&wim->in_fd, -1);
+		wim->in_fd.reader = src->reader;
+		wim->in_fd.reader_ctx = src->ctx;
+		wim->file_size = src->reader->size(src->ctx);
 	} else {
 		struct stat stbuf;
 
@@ -827,6 +836,24 @@ wimlib_open_wim_with_progress(const tchar *wimfile, int open_flags,
 
 	return open_wim_as_WIMStruct(wimfile, open_flags, wim_ret,
 				     progfunc, progctx);
+}
+
+/* API function documented in wimlib.h  */
+WIMLIBAPI int
+wimlib_open_wim_from_reader(const struct wimlib_file_reader *reader, void *ctx,
+			    int open_flags, WIMStruct **wim_ret)
+{
+	struct wim_reader_source src = { reader, ctx };
+
+	if (open_flags & ~(WIMLIB_OPEN_FLAG_CHECK_INTEGRITY |
+			   WIMLIB_OPEN_FLAG_ERROR_IF_SPLIT))
+		return WIMLIB_ERR_INVALID_PARAM;
+
+	if (!reader || !reader->pread || !reader->size || !wim_ret)
+		return WIMLIB_ERR_INVALID_PARAM;
+
+	return open_wim_as_WIMStruct(&src, open_flags | WIMLIB_OPEN_FLAG_FROM_READER,
+				     wim_ret, NULL, NULL);
 }
 
 /* API function documented in wimlib.h  */

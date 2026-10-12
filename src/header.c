@@ -90,7 +90,12 @@ read_wim_header(WIMStruct *wim, struct wim_header *hdr)
 		if (hdr->magic == PWM_MAGIC) {
 			/* Pipable WIM:  Use header at end instead, unless
 			 * actually reading from a pipe.  */
-			if (!in_fd->is_pipe) {
+			if (in_fd->reader) {
+				ret = full_pread(in_fd, &disk_hdr, sizeof(disk_hdr),
+						 wim->file_size - WIM_HEADER_DISK_SIZE);
+				if (ret)
+					goto read_error;
+			} else if (!in_fd->is_pipe) {
 				ret = WIMLIB_ERR_READ;
 				if (-1 == lseek(in_fd->fd, -WIM_HEADER_DISK_SIZE, SEEK_END))
 					goto read_error;
