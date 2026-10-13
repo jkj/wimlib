@@ -32,25 +32,9 @@
 #include "wimlib/file_io.h"
 #include "wimlib/util.h"
 
-#ifdef _WIN32
-#  include "wimlib/win32.h"
-#  define read win32_read
-#  define write win32_write
-#  define pread win32_pread
-#  define pwrite win32_pwrite
-#endif
-
-/*
- * Wrapper around read() that checks for errors and keeps retrying until all
- * requested bytes have been read or until end-of file has occurred.
- *
- * Return values:
- *	WIMLIB_ERR_SUCCESS			(0)
- *	WIMLIB_ERR_READ				(errno set)
- *	WIMLIB_ERR_UNEXPECTED_END_OF_FILE	(errno set to EINVAL)
- */
 /* A read through a filedes's reader, at an absolute offset, retried until
- * 'count' bytes have arrived.  */
+ * 'count' bytes have arrived.  It sits above the Windows renames below, which
+ * would otherwise turn the reader's 'pread' member into 'win32_pread'.  */
 static int
 reader_read(struct filedes *fd, void *buf, size_t count, off_t offset)
 {
@@ -71,6 +55,23 @@ reader_read(struct filedes *fd, void *buf, size_t count, off_t offset)
 	return 0;
 }
 
+#ifdef _WIN32
+#  include "wimlib/win32.h"
+#  define read win32_read
+#  define write win32_write
+#  define pread win32_pread
+#  define pwrite win32_pwrite
+#endif
+
+/*
+ * Wrapper around read() that checks for errors and keeps retrying until all
+ * requested bytes have been read or until end-of file has occurred.
+ *
+ * Return values:
+ *	WIMLIB_ERR_SUCCESS			(0)
+ *	WIMLIB_ERR_READ				(errno set)
+ *	WIMLIB_ERR_UNEXPECTED_END_OF_FILE	(errno set to EINVAL)
+ */
 int
 full_read(struct filedes *fd, void *buf, size_t count)
 {
